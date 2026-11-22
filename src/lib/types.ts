@@ -1,0 +1,96 @@
+export interface BaseDoc {
+  id: string;
+  createdAt?: number;
+  updatedAt?: number;
+}
+
+export interface FuelEntry extends BaseDoc {
+  date: string; // YYYY-MM-DD
+  station: string;
+  liters: number;
+  totalPrice: number;
+  /** Trip meter: km driven since the previous fill-up */
+  tripKm: number;
+  fullTank: boolean;
+  /** Excluded from statistics (e.g. a known typo the user wants to keep) */
+  excluded?: boolean;
+  notes?: string;
+}
+
+export type MaintenanceKind = 'service' | 'repair' | 'tires' | 'battery' | 'brakes' | 'wipers' | 'other';
+
+export interface MaintenanceEntry extends BaseDoc {
+  date: string;
+  odometer?: number;
+  kind: MaintenanceKind;
+  description: string;
+  parts: string[];
+  cost: number;
+  garage: string;
+  invoiceUrl?: string;
+  notes?: string;
+}
+
+export interface TestEntry extends BaseDoc {
+  date: string;
+  passed: boolean;
+  station?: string;
+  cost?: number;
+  odometer?: number;
+  /** Vehicle license valid until (renewed by the test) */
+  validUntil: string;
+  notes?: string;
+}
+
+export type DocType =
+  | 'vehicle_license'
+  | 'driver_license'
+  | 'compulsory_insurance'
+  | 'comprehensive_insurance'
+  | 'other';
+
+export interface Phone {
+  label: string;
+  number: string;
+}
+
+export interface CarDocument extends BaseDoc {
+  type: DocType;
+  title: string;
+  provider?: string;
+  expiryDate?: string;
+  cost?: number;
+  phones: Phone[];
+  fileUrl?: string;
+  notes?: string;
+}
+
+export type TaskList = 'urgent' | 'someday';
+
+export interface Task extends BaseDoc {
+  text: string;
+  list: TaskList;
+  done: boolean;
+  dueDate?: string;
+}
+
+export interface ChecklistItem {
+  id: string;
+  text: string;
+  done: boolean;
+}
+
+export interface Settings {
+  carName: string;
+  plate?: string;
+  /** A known odometer reading, used as the anchor for mileage estimation */
+  baseOdometer?: number;
+  baseOdometerDate?: string;
+  serviceIntervalKm: number;
+  serviceIntervalMonths: number;
+  /** Days before a due date at which an item becomes "urgent" */
+  reminderDays: number;
+  testChecklist: ChecklistItem[];
+}
+
+export type CollectionName = 'fuel' | 'maintenance' | 'tests' | 'documents' | 'tasks';

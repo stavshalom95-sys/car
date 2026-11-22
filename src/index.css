@@ -1,0 +1,39 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: "Rubik", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+}
+
+html, body, #root {
+  min-height: 100%;
+}
+
+body {
+  @apply bg-slate-100 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@layer components {
+  .input {
+    @apply w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-base text-slate-900 placeholder:text-slate-400
+      focus:border-blue-600 focus:ring-2 focus:ring-blue-600/30 focus:outline-none
+      dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-blue-400;
+  }
+  .card {
+    @apply rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900;
+  }
+  .muted {
+    @apply text-slate-600 dark:text-slate-400;
+  }
+}
+
+/* Numbers / dates typed into RTL inputs stay readable */
+input[type="number"], input[type="date"], input[type="tel"], input[type="url"] {
+  direction: ltr;
+  text-align: right;
+}
+
+.pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+.pt-safe { padding-top: env(safe-area-inset-top); }
