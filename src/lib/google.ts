@@ -106,3 +106,62 @@ export async function driveUpload(token: string, parentId: string, file: Blob, n
     method: 'POST', body: form,
   });
 }
+
+// ---------------------------------------------------------------------------
+// Calendar
+// ---------------------------------------------------------------------------
+
+const CAL = 'https://www.googleapis.com/calendar/v3';
+export interface CalendarEvent { id: string; status?: string; summary?: string; start?: { date?: string } }
+
+/** Find the dedicated calendar by name, or create it */
+export async function calendarEnsure(token: string, name: string, knownId?: string): Promise<string> {
+  if (knownId) {
+    const r = await fetch(`${CAL}/calendars/${encodeURIComponent(knownId)}`, { headers: { Authorization: `Bearer ${token}` } });
+    if (r.ok) return knownId;
+  }
+  let pageToken = '';
+  do {
+    const r = await api<{ items: { id: string; summary: string; accessRole: string }[]; nextPageToken?: string }>(
+      token, `${CAL}/users/me/calendarList?minAccessRole=owner${pageToken ? `&pageToken=${pageToken}` : ''}`);
+    const hit = r.items.find((c) => c.summary === name);
+    if (hit) return hit.id;
+    pageToken = r.nextPageToken ?? '';
+  } while (pageToken);
+  const created = await api<{ id: string }>(token, `${CAL}/calendars`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ summary: name, timeZone: 'Asia/Jerusalem', description: 'תזכורות מאפליקציית הרכב' }),
+  });
+  return created.id;
+}
+
+/** Events this app created in the calendar (tagged with a private property) */
+export async function calendarAppEvents(token: string, calendarId: string): Promise<CalendarEvent[]> {
+  const out: CalendarEvent[] = [];
+  let pageToken = '';
+  do {
+    const params = new URLSearchParams({ privateExtendedProperty: 'carApp=1', showDeleted: 'false', maxResults: '2500' });
+    if (pageToken) params.set('pageToken', pageToken);
+    const r = await api<{ items: CalendarEvent[]; nextPageToken?: string }>(token, `${CAL}/calendars/${encodeURIComponent(calendarId)}/events?${params}`);
+    out.push(...r.items);
+    pageToken = r.nextPageToken ?? '';
+  } while (pageToken);
+  return out;
+}
+
+/** Create or update an event with a known id. Returns 'created' | 'updated'. */
+export async function calendarUpsert(token: string, calendarId: string, body: { id: string }): Promise<'created' | 'updated'> {
+  const base = `${CAL}/calendars/${encodeURIComponent(calendarId)}/events`;
+  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+  const put = await fetch(`${base}/${body.id}`, { method: 'PUT', headers, body: JSON.stringify(body) });
+  if (put.ok) return 'updated';
+  if (put.status === 401) { forgetGoogleToken(); throw new Error('ההרשאה ל-Google פגה – התחבר שוב'); }
+  if (put.status !== 404) throw new Error(`Google Calendar ${put.status}: ${(await put.text()).slice(0, 200)}`);
+  await api(token, base, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  return 'created';
+}
+
+export async function calendarDelete(token: string, calendarId: string, eventId: string): Promise<void> {
+  const r = await fetch(`${CAL}/calendars/${encodeURIComponent(calendarId)}/events/${eventId}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+  if (!r.ok && r.status !== 410 && r.status !== 404) throw new Error(`Google Calendar ${r.status}`);
+}

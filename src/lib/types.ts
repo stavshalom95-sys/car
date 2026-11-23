@@ -96,6 +96,9 @@ export interface Settings {
   testChecklist: ChecklistItem[];
   /** The car's Google Drive folder (uploads and the Gmail import inbox live under it) */
   driveFolderId?: string;
+  /** Google Calendar sync: the dedicated calendar and when it was last synced (ISO timestamp) */
+  calendarId?: string;
+  calendarSyncedAt?: string;
 }
 
 export type PartSlot =

@@ -6,6 +6,7 @@ import { useTheme, type ThemePref } from '../lib/hooks';
 import { parseNum } from '../lib/format';
 import { todayISO } from '../lib/dates';
 import { Alert, Button, Card, Field, PageHeader, useToast } from '../components/ui';
+import CalendarSync from '../components/CalendarSync';
 
 export default function SettingsPage() {
   const data = useData();
@@ -93,6 +94,8 @@ export default function SettingsPage() {
           </select>
         </Field>
       </Card>
+
+      {!user?.local && <CalendarSync />}
 
       <Card className="space-y-3">
         <h2 className="font-semibold">חשבון וגיבוי</h2>
