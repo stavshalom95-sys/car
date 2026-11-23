@@ -116,4 +116,19 @@ export interface PartInfo extends BaseDoc {
   notes?: string;
 }
 
-export type CollectionName = 'fuel' | 'maintenance' | 'tests' | 'documents' | 'tasks' | 'parts';
+export type ExpenseCategory = 'parking' | 'toll' | 'fine' | 'wash' | 'other';
+
+export interface Expense extends BaseDoc {
+  date: string;
+  category: ExpenseCategory;
+  amount: number;
+  description?: string;
+  location?: string;
+  receiptUrl?: string;
+  notes?: string;
+  /** Fines: payment deadline and status */
+  dueDate?: string;
+  paid?: boolean;
+}
+
+export type CollectionName = 'fuel' | 'maintenance' | 'tests' | 'documents' | 'tasks' | 'parts' | 'expenses';

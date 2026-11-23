@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronLeft, Gauge, ShoppingCart, Siren, Trash2, TrendingDown, TrendingUp } from 'lucide-react';
 import { useData } from '../lib/data';
-import { buildDueItems, estimateOdometer, latestAnomaly, type DueItem } from '../lib/calc';
+import { annualCost, buildDueItems, estimateOdometer, latestAnomaly, type DueItem } from '../lib/calc';
+import { formatMoney } from '../lib/format';
 import { formatDate, relativeDays } from '../lib/dates';
 import { formatNumber } from '../lib/format';
 import { Alert, Badge, Button, Card, cx, IconButton, SEVERITY_BORDER, useConfirm, useToast } from '../components/ui';
@@ -97,6 +98,7 @@ export default function Dashboard() {
   const items = useMemo(() => buildDueItems(data), [data]);
   const odo = useMemo(() => estimateOdometer(settings, fuel, maintenance, tests), [settings, fuel, maintenance, tests]);
   const anomaly = useMemo(() => latestAnomaly(fuel), [fuel]);
+  const ytd = useMemo(() => annualCost(new Date().getFullYear().toString(), data), [data]);
 
   const urgent = items.filter((i) => i.severity === 'overdue' || i.severity === 'urgent');
   const later = items.filter((i) => i.severity === 'soon' || i.severity === 'missing');
@@ -120,6 +122,10 @@ export default function Dashboard() {
           </div>
         </Card>
       </div>
+      <Link to="/expenses" className="card flex items-center justify-between py-3 hover:bg-slate-50 dark:hover:bg-slate-800/60">
+        <span className="text-sm muted">עלות הרכב השנה עד כה</span>
+        <span className="flex items-center gap-1 text-lg font-bold tabular-nums">{formatMoney(ytd.total)} <ChevronLeft className="h-5 w-5 text-slate-400" /></span>
+      </Link>
       {!odo && (
         <Alert tone="info">
           כדי להעריך קילומטראז׳, הזן קריאת מד אוץ ידועה ב<Link to="/settings" className="font-medium underline">הגדרות</Link> או ק״מ בטיפול האחרון.

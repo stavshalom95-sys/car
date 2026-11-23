@@ -1,4 +1,4 @@
-import type { CarDocument, FuelEntry, MaintenanceEntry, PartInfo, Settings, Task, TestEntry } from './types';
+import type { CarDocument, Expense, ExpenseCategory, FuelEntry, MaintenanceEntry, PartInfo, Settings, Task, TestEntry } from './types';
 import { computeParts } from './parts';
 import { addDays, addMonths, daysBetween, daysUntil, formatDate, todayISO } from './dates';
 import { formatNumber } from './format';
@@ -223,6 +223,7 @@ export function buildDueItems(input: {
   documents: CarDocument[];
   tasks: Task[];
   parts?: PartInfo[];
+  expenses?: Expense[];
 }): DueItem[] {
   const { settings, fuel, maintenance, tests, documents, tasks } = input;
   const items: DueItem[] = [];
@@ -296,6 +297,17 @@ export function buildDueItems(input: {
     if (d >= 0 && d <= rd) items.push({ id: `warranty-${p.def.slot}`, title: `אחריות ${p.def.label} מסתיימת`, detail: `עד ${formatDate(w)}`, dueDate: w, daysLeft: d, severity: 'soon', link: '/parts' });
   }
 
+  // Unpaid fines
+  for (const e of input.expenses ?? []) {
+    if (e.category !== 'fine' || e.paid) continue;
+    const d = e.dueDate ? daysUntil(e.dueDate) : undefined;
+    items.push({
+      id: `fine-${e.id}`, title: 'תשלום דוח',
+      detail: [e.description, `₪${formatNumber(e.amount)}`, e.dueDate ? `לתשלום עד ${formatDate(e.dueDate)}` : 'לא הוזן מועד תשלום'].filter(Boolean).join(' · '),
+      dueDate: e.dueDate, daysLeft: d, severity: d == null ? 'urgent' : d < 0 ? 'overdue' : 'urgent', link: '/expenses',
+    });
+  }
+
   // Tasks with due dates
   for (const t of tasks) {
     if (t.done || t.list !== 'urgent' || !t.dueDate) continue;
@@ -306,4 +318,77 @@ export function buildDueItems(input: {
   return items.sort(
     (a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity] || (a.daysLeft ?? 9999) - (b.daysLeft ?? 9999),
   );
+}
+
+// ---------------------------------------------------------------------------
+// Total cost of ownership per year
+// ---------------------------------------------------------------------------
+
+export const EXPENSE_LABEL: Record<ExpenseCategory, string> = {
+  parking: 'חניה',
+  toll: 'כבישי אגרה',
+  fine: 'דוחות',
+  wash: 'שטיפות',
+  other: 'אחר',
+};
+
+export interface CostRow {
+  key: string;
+  label: string;
+  amount: number;
+  count: number;
+}
+
+export interface AnnualCost {
+  year: string;
+  total: number;
+  rows: CostRow[];
+  /** Months the average is spread over (elapsed months for the current year) */
+  months: number;
+  byMonth: number[];
+}
+
+/** A yearly document (insurance, license, service plan) belongs to the year its period starts */
+export const docPeriodStart = (d: CarDocument) => (d.expiryDate ? addMonths(d.expiryDate, -12) : undefined);
+
+export function availableYears(input: { fuel: FuelEntry[]; maintenance: MaintenanceEntry[]; tests: TestEntry[]; documents: CarDocument[]; expenses: Expense[] }): string[] {
+  const ys = new Set<string>([todayISO().slice(0, 4)]);
+  for (const x of [...input.fuel, ...input.maintenance, ...input.tests, ...input.expenses]) ys.add(x.date.slice(0, 4));
+  for (const d of input.documents) { const s = docPeriodStart(d); if (s && d.cost) ys.add(s.slice(0, 4)); }
+  return [...ys].sort().reverse();
+}
+
+export function annualCost(
+  year: string,
+  input: { fuel: FuelEntry[]; maintenance: MaintenanceEntry[]; tests: TestEntry[]; documents: CarDocument[]; expenses: Expense[] },
+): AnnualCost {
+  const inYear = (d?: string) => !!d && d.startsWith(year);
+  const byMonth = Array(12).fill(0) as number[];
+  const add = (date: string | undefined, amount: number) => { if (date) byMonth[Number(date.slice(5, 7)) - 1] += amount; };
+  const rows: CostRow[] = [];
+  const push = (key: string, label: string, items: { date?: string; amount: number }[]) => {
+    const amount = items.reduce((s, i) => s + i.amount, 0);
+    items.forEach((i) => add(i.date, i.amount));
+    if (amount > 0) rows.push({ key, label, amount, count: items.length });
+  };
+
+  push('fuel', 'דלק', input.fuel.filter((f) => inYear(f.date)).map((f) => ({ date: f.date, amount: f.totalPrice || 0 })));
+  push('maintenance', 'טיפולים ותיקונים', input.maintenance.filter((m) => inYear(m.date)).map((m) => ({ date: m.date, amount: m.cost || 0 })).filter((x) => x.amount > 0));
+  const docsIn = (types: string[]) => input.documents
+    .filter((d) => types.includes(d.type) && d.cost && inYear(docPeriodStart(d)))
+    .map((d) => ({ date: docPeriodStart(d), amount: d.cost! }));
+  push('insurance', 'ביטוחים', docsIn(['compulsory_insurance', 'comprehensive_insurance']));
+  push('license', 'רישוי וטסט', [
+    ...docsIn(['vehicle_license', 'driver_license']),
+    ...input.tests.filter((t) => inYear(t.date) && t.cost).map((t) => ({ date: t.date, amount: t.cost! })),
+  ]);
+  push('plans', 'כתבי שירות ואחר', docsIn(['other']));
+  for (const c of Object.keys(EXPENSE_LABEL) as ExpenseCategory[]) {
+    push(`exp-${c}`, EXPENSE_LABEL[c], input.expenses.filter((e) => e.category === c && inYear(e.date)).map((e) => ({ date: e.date, amount: e.amount || 0 })));
+  }
+
+  rows.sort((a, b) => b.amount - a.amount);
+  const now = todayISO();
+  const months = year === now.slice(0, 4) ? Number(now.slice(5, 7)) : 12;
+  return { year, total: rows.reduce((s, r) => s + r.amount, 0), rows, months, byMonth };
 }

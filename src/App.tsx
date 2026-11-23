@@ -12,6 +12,7 @@ import DocumentsPage from './pages/Documents';
 import SettingsPage from './pages/Settings';
 import PartsPage from './pages/Parts';
 import MorePage from './pages/More';
+import ExpensesPage from './pages/Expenses';
 
 function Loading() {
   return (
@@ -35,6 +36,7 @@ function Routed() {
         <Route path="settings" element={<SettingsPage />} />
         <Route path="parts" element={<PartsPage />} />
         <Route path="more" element={<MorePage />} />
+        <Route path="expenses" element={<ExpensesPage />} />
         <Route path="*" element={<Dashboard />} />
       </Route>
     </Routes>

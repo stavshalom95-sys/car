@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type {
-  CarDocument, ChecklistItem, CollectionName, FuelEntry, MaintenanceEntry, PartInfo, Settings, Task, TestEntry,
+  CarDocument, ChecklistItem, CollectionName, Expense, FuelEntry, MaintenanceEntry, PartInfo, Settings, Task, TestEntry,
 } from './types';
 import { FirestoreBackend, LocalBackend, type Backend } from './backend';
 import { firestore } from './firebase';
@@ -42,6 +42,7 @@ interface DataState {
   documents: CarDocument[];
   tasks: Task[];
   parts: PartInfo[];
+  expenses: Expense[];
   add: (col: CollectionName, data: object) => Promise<string>;
   update: (col: CollectionName, id: string, data: object) => Promise<void>;
   /** Callers MUST ask the user for confirmation before calling this. */
@@ -68,6 +69,7 @@ export function DataProvider({ user, children }: { user: AppUser; children: Reac
   const [documents, setDocuments] = useState<CarDocument[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [parts, setParts] = useState<PartInfo[]>([]);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loaded, setLoaded] = useState<Set<string>>(new Set());
   const [lastError, setLastError] = useState<string | null>(null);
 
@@ -83,6 +85,7 @@ export function DataProvider({ user, children }: { user: AppUser; children: Reac
       backend.subscribe<TestEntry>('tests', (x) => { setTests(byDateDesc(x)); mark('tests'); }, onErr),
       backend.subscribe<CarDocument>('documents', (x) => { setDocuments(x); mark('documents'); }, onErr),
       backend.subscribe<Task>('tasks', (x) => { setTasks(x.sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0))); mark('tasks'); }, onErr),
+      backend.subscribe<Expense>('expenses', (x) => { setExpenses(byDateDesc(x)); mark('expenses'); }, onErr),
       backend.subscribe<PartInfo>('parts', (x) => { setParts(x); mark('parts'); }, onErr),
       backend.subscribeDoc<Partial<Settings>>('settings', (s) => {
         const merged = { ...DEFAULT_SETTINGS, ...(s ?? {}) };
@@ -96,10 +99,10 @@ export function DataProvider({ user, children }: { user: AppUser; children: Reac
   }, [backend]);
 
   const value: DataState = {
-    ready: loaded.size >= 7 && !!settings,
+    ready: loaded.size >= 8 && !!settings,
     backend,
     settings: settings ?? DEFAULT_SETTINGS,
-    fuel, maintenance, tests, documents, tasks, parts,
+    fuel, maintenance, tests, documents, tasks, parts, expenses,
     add: (c, d) => backend.add(c, d),
     update: (c, id, d) => backend.update(c, id, d),
     remove: (c, id) => backend.remove(c, id),

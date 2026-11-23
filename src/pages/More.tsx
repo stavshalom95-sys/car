@@ -1,8 +1,9 @@
 import { Link } from 'react-router-dom';
-import { CalendarCheck, ChevronLeft, FileText, Settings } from 'lucide-react';
+import { CalendarCheck, ChevronLeft, FileText, Receipt, Settings } from 'lucide-react';
 import { PageHeader } from '../components/ui';
 
 const ITEMS = [
+  { to: '/expenses', label: 'הוצאות ועלות שנתית', desc: 'חניה, כביש 6, דוחות, שטיפות וסך עלות הרכב', icon: Receipt },
   { to: '/test', label: 'טסט ורישיון רכב', desc: 'ספירה לאחור, רשימת בדיקות והיסטוריה', icon: CalendarCheck },
   { to: '/documents', label: 'מסמכים', desc: 'רישיונות, ביטוחים, טלפונים וקבצים', icon: FileText },
   { to: '/settings', label: 'הגדרות', desc: 'פרטי הרכב, תזכורות, ערכת נושא וגיבוי', icon: Settings },
