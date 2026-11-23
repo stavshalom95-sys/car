@@ -93,4 +93,24 @@ export interface Settings {
   testChecklist: ChecklistItem[];
 }
 
-export type CollectionName = 'fuel' | 'maintenance' | 'tests' | 'documents' | 'tasks';
+export type PartSlot =
+  | 'battery'
+  | 'tire_fl' | 'tire_fr' | 'tire_rl' | 'tire_rr' | 'tire_spare'
+  | 'pads_front' | 'pads_rear' | 'discs_front' | 'discs_rear'
+  | 'wipers' | 'timing_belt';
+
+/** User-entered info for a tracked part. Document id = the slot. */
+export interface PartInfo extends BaseDoc {
+  brand?: string;
+  /** A replacement not logged in maintenance (the newer of this and the maintenance log wins) */
+  manualDate?: string;
+  manualKm?: number;
+  lifeKm?: number;
+  lifeMonths?: number;
+  warrantyUntil?: string;
+  treadMm?: number;
+  treadDate?: string;
+  notes?: string;
+}
+
+export type CollectionName = 'fuel' | 'maintenance' | 'tests' | 'documents' | 'tasks' | 'parts';

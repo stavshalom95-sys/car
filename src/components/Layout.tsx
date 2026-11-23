@@ -1,5 +1,5 @@
 import { NavLink, Outlet, Link } from 'react-router-dom';
-import { CalendarCheck, Car, FileText, Fuel, Moon, Settings as SettingsIcon, Sun, SunMoon, Wrench } from 'lucide-react';
+import { CalendarCheck, Car, CircleDot, FileText, Fuel, LayoutGrid, Moon, Settings as SettingsIcon, Sun, SunMoon, Wrench } from 'lucide-react';
 import { useTheme, type ThemePref } from '../lib/hooks';
 import { useData } from '../lib/data';
 import { useAuth } from '../lib/auth';
@@ -9,9 +9,13 @@ const NAV = [
   { to: '/', label: 'מה דחוף', icon: Car, end: true },
   { to: '/fuel', label: 'תדלוקים', icon: Fuel },
   { to: '/maintenance', label: 'טיפולים', icon: Wrench },
+  { to: '/parts', label: 'חלקים', icon: CircleDot },
   { to: '/test', label: 'טסט', icon: CalendarCheck },
   { to: '/documents', label: 'מסמכים', icon: FileText },
 ];
+
+/** Mobile bottom bar: 4 main sections + "more" */
+const MOBILE_NAV = [...NAV.slice(0, 4), { to: '/more', label: 'עוד', icon: LayoutGrid, end: false }];
 
 const NEXT_THEME: Record<ThemePref, ThemePref> = { system: 'light', light: 'dark', dark: 'system' };
 const THEME_LABEL: Record<ThemePref, string> = { system: 'ערכת נושא: לפי המכשיר', light: 'ערכת נושא: בהיר', dark: 'ערכת נושא: כהה' };
@@ -59,7 +63,7 @@ export default function Layout() {
       {/* Mobile bottom nav */}
       <nav className="pb-safe fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 backdrop-blur sm:hidden dark:border-slate-800 dark:bg-slate-950/95">
         <div className="grid grid-cols-5">
-          {NAV.map((n) => (
+          {MOBILE_NAV.map((n) => (
             <NavLink key={n.to} to={n.to} end={n.end}
               className={({ isActive }) => cx('flex flex-col items-center gap-0.5 py-2 text-[11px]', isActive ? 'font-medium text-blue-700 dark:text-blue-400' : 'text-slate-600 dark:text-slate-400')}>
               <n.icon className="h-6 w-6" />

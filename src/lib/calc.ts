@@ -1,4 +1,5 @@
-import type { CarDocument, FuelEntry, MaintenanceEntry, Settings, Task, TestEntry } from './types';
+import type { CarDocument, FuelEntry, MaintenanceEntry, PartInfo, Settings, Task, TestEntry } from './types';
+import { computeParts } from './parts';
 import { addDays, addMonths, daysBetween, daysUntil, formatDate, todayISO } from './dates';
 import { formatNumber } from './format';
 
@@ -220,6 +221,7 @@ export function buildDueItems(input: {
   tests: TestEntry[];
   documents: CarDocument[];
   tasks: Task[];
+  parts?: PartInfo[];
 }): DueItem[] {
   const { settings, fuel, maintenance, tests, documents, tasks } = input;
   const items: DueItem[] = [];
@@ -267,6 +269,30 @@ export function buildDueItems(input: {
     items.push({ id: 'service', title: 'טיפול תקופתי', detail: parts.join(' · '), dueDate: svc.dueDate, daysLeft: d, severity: sev, link: '/maintenance' });
   } else {
     items.push({ id: 'service', title: 'טיפול תקופתי', detail: 'הזן את הטיפול האחרון (עם ק״מ) כדי לקבל תחזית', severity: 'missing', link: '/maintenance' });
+  }
+
+  // Wear-and-tear parts (road tires with the same status are merged into one item)
+  const parts = computeParts({ settings, maintenance, tests, fuel, parts: input.parts ?? [], currentKm: odo?.km, kmPerDay: avgKmPerDay(fuel) });
+  const merged = new Map<string, { labels: string[]; p: (typeof parts)[number] }>();
+  for (const p of parts) {
+    if (p.severity !== 'overdue' && p.severity !== 'urgent' && p.severity !== 'soon') continue;
+    const key = p.def.group === 'tires' && p.def.slot !== 'tire_spare' ? `tires|${p.installedDate}|${p.severity}|${p.warning ?? ''}` : p.def.slot;
+    if (!merged.has(key)) merged.set(key, { labels: [], p });
+    merged.get(key)!.labels.push(p.def.label);
+  }
+  for (const [key, { labels, p }] of merged) {
+    const d = p.dueDate ? daysUntil(p.dueDate) : undefined;
+    const title = labels.length > 1 ? `צמיגים (${labels.length})` : p.def.label;
+    const parts2 = [p.severity === 'overdue' ? 'עבר את אורך החיים המומלץ' : `${Math.round((p.wear ?? 0) * 100)}% מאורך החיים`];
+    if (p.warning) parts2.unshift(p.warning);
+    if (p.installedDate) parts2.push(`הוחלף ${formatDate(p.installedDate)}`);
+    items.push({ id: `part-${key}`, title: `${p.severity === 'soon' ? 'בקרוב: ' : ''}החלפת ${title}`, detail: parts2.join(' · '), dueDate: p.dueDate, daysLeft: d, severity: p.severity, link: '/parts' });
+  }
+  for (const p of parts) {
+    const w = p.info?.warrantyUntil;
+    if (!w) continue;
+    const d = daysUntil(w);
+    if (d >= 0 && d <= rd) items.push({ id: `warranty-${p.def.slot}`, title: `אחריות ${p.def.label} מסתיימת`, detail: `עד ${formatDate(w)}`, dueDate: w, daysLeft: d, severity: 'soon', link: '/parts' });
   }
 
   // Tasks with due dates

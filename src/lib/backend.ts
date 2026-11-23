@@ -14,6 +14,8 @@ export interface Backend {
   add(col: string, data: object): Promise<string>;
   update(col: string, id: string, data: object): Promise<void>;
   remove(col: string, id: string): Promise<void>;
+  /** Create or merge a document with a known id */
+  set(col: string, id: string, data: object): Promise<void>;
   subscribeDoc<T>(key: string, cb: (data: T | null) => void): Unsubscribe;
   setDoc(key: string, data: object): Promise<void>;
 }
@@ -61,6 +63,13 @@ export class FirestoreBackend implements Backend {
 
   async remove(name: string, id: string) {
     deleteDoc(doc(this.col(name), id)).catch(console.error);
+  }
+
+  async set(name: string, id: string, data: object) {
+    guard(data);
+    const { id: _ignored, ...rest } = data as BaseDoc;
+    void _ignored;
+    setDoc(doc(this.col(name), id), clean({ ...rest, updatedAt: Date.now() })).catch(console.error);
   }
 
   subscribeDoc<T>(key: string, cb: (data: T | null) => void) {
@@ -132,6 +141,13 @@ export class LocalBackend implements Backend {
 
   async remove(col: string, id: string) {
     this.write(col, this.read<BaseDoc[]>(col, []).filter((it) => it.id !== id));
+  }
+
+  async set(col: string, id: string, data: object) {
+    guard(data);
+    const items = this.read<BaseDoc[]>(col, []).filter((it) => it.id !== id);
+    items.push(clean({ ...data, id, updatedAt: Date.now() }));
+    this.write(col, items);
   }
 
   subscribeDoc<T>(key: string, cb: (data: T | null) => void) {

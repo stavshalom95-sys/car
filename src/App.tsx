@@ -10,6 +10,8 @@ import MaintenancePage from './pages/Maintenance';
 import TestPage from './pages/Test';
 import DocumentsPage from './pages/Documents';
 import SettingsPage from './pages/Settings';
+import PartsPage from './pages/Parts';
+import MorePage from './pages/More';
 
 function Loading() {
   return (
@@ -31,6 +33,8 @@ function Routed() {
         <Route path="test" element={<TestPage />} />
         <Route path="documents" element={<DocumentsPage />} />
         <Route path="settings" element={<SettingsPage />} />
+        <Route path="parts" element={<PartsPage />} />
+        <Route path="more" element={<MorePage />} />
         <Route path="*" element={<Dashboard />} />
       </Route>
     </Routes>
