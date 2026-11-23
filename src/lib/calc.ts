@@ -1,4 +1,4 @@
-import type { CarDocument, Expense, ExpenseCategory, FuelEntry, MaintenanceEntry, PartInfo, Settings, Task, TestEntry } from './types';
+import type { CarDocument, EquipmentItem, Expense, ExpenseCategory, FuelEntry, MaintenanceEntry, PartInfo, Settings, Task, TestEntry } from './types';
 import { computeParts } from './parts';
 import { addDays, addMonths, daysBetween, daysUntil, formatDate, todayISO } from './dates';
 import { formatNumber } from './format';
@@ -224,6 +224,7 @@ export function buildDueItems(input: {
   tasks: Task[];
   parts?: PartInfo[];
   expenses?: Expense[];
+  equipment?: EquipmentItem[];
 }): DueItem[] {
   const { settings, fuel, maintenance, tests, documents, tasks } = input;
   const items: DueItem[] = [];
@@ -295,6 +296,15 @@ export function buildDueItems(input: {
     if (!w) continue;
     const d = daysUntil(w);
     if (d >= 0 && d <= rd) items.push({ id: `warranty-${p.def.slot}`, title: `אחריות ${p.def.label} מסתיימת`, detail: `עד ${formatDate(w)}`, dueDate: w, daysLeft: d, severity: 'soon', link: '/parts' });
+  }
+
+  // Car equipment expiring (first-aid kit, fire extinguisher...)
+  for (const e of input.equipment ?? []) {
+    if (!e.expiryDate || e.status === 'missing') continue;
+    const d = daysUntil(e.expiryDate);
+    const sev = severityFor(d, rd);
+    if (sev === 'ok') continue;
+    items.push({ id: `equip-${e.id}`, title: `${d < 0 ? 'פג תוקף' : 'תוקף מסתיים'}: ${e.name}`, detail: `בתוקף עד ${formatDate(e.expiryDate)}`, dueDate: e.expiryDate, daysLeft: d, severity: sev, link: '/equipment' });
   }
 
   // Unpaid fines

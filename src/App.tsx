@@ -13,6 +13,7 @@ import SettingsPage from './pages/Settings';
 import PartsPage from './pages/Parts';
 import MorePage from './pages/More';
 import ExpensesPage from './pages/Expenses';
+import EquipmentPage from './pages/Equipment';
 
 function Loading() {
   return (
@@ -37,6 +38,7 @@ function Routed() {
         <Route path="parts" element={<PartsPage />} />
         <Route path="more" element={<MorePage />} />
         <Route path="expenses" element={<ExpensesPage />} />
+        <Route path="equipment" element={<EquipmentPage />} />
         <Route path="*" element={<Dashboard />} />
       </Route>
     </Routes>

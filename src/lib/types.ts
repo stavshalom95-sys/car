@@ -131,4 +131,16 @@ export interface Expense extends BaseDoc {
   paid?: boolean;
 }
 
-export type CollectionName = 'fuel' | 'maintenance' | 'tests' | 'documents' | 'tasks' | 'parts' | 'expenses';
+export type EquipmentLocation = 'trunk' | 'under_seat' | 'glovebox' | 'doors' | 'cabin' | 'spare_well' | 'other';
+export type EquipmentStatus = 'ok' | 'missing' | 'replace';
+
+export interface EquipmentItem extends BaseDoc {
+  name: string;
+  location: EquipmentLocation;
+  quantity: number;
+  status: EquipmentStatus;
+  expiryDate?: string;
+  notes?: string;
+}
+
+export type CollectionName = 'fuel' | 'maintenance' | 'tests' | 'documents' | 'tasks' | 'parts' | 'expenses' | 'equipment';

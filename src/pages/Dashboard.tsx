@@ -85,6 +85,9 @@ function TaskSection({ list, title, icon, placeholder }: { list: TaskList; title
           {done.map(Row)}
         </ul>
       )}
+      {list === 'someday' && (
+        <Link to="/equipment" className="mt-2 me-4 inline-block text-sm text-blue-700 hover:underline dark:text-blue-400">לרשימת הקניות המלאה ולשיתוף ←</Link>
+      )}
       {done.length > 0 && (
         <button onClick={clearDone} className="mt-2 text-sm text-blue-700 hover:underline dark:text-blue-400">ניקוי פריטים שבוצעו ({done.length})</button>
       )}
