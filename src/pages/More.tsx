@@ -1,11 +1,12 @@
 import { Link } from 'react-router-dom';
-import { CalendarCheck, ChevronLeft, FileText, Package, Receipt, Settings, ShieldCheck } from 'lucide-react';
+import { CalendarCheck, ChevronLeft, FileText, Mail, Package, Receipt, Settings, ShieldCheck } from 'lucide-react';
 import { PageHeader } from '../components/ui';
 
 const ITEMS = [
   { to: '/equipment', label: 'ציוד ברכב ורשימת קניות', desc: 'ציוד לפי מיקום, תוקף, ורשימה לשיתוף', icon: Package },
   { to: '/insurance', label: 'השוואת ביטוחים', desc: 'הצעות מחיר מול הביטוח הנוכחי וכמה אפשר לחסוך', icon: ShieldCheck },
   { to: '/expenses', label: 'הוצאות ועלות שנתית', desc: 'חניה, כביש 6, דוחות, שטיפות וסך עלות הרכב', icon: Receipt },
+  { to: '/import', label: 'ייבוא מ-Gmail', desc: 'קבלות חניה וכביש 6 שהשגרה החודשית מצאה – לאישורך', icon: Mail },
   { to: '/test', label: 'טסט ורישיון רכב', desc: 'ספירה לאחור, רשימת בדיקות והיסטוריה', icon: CalendarCheck },
   { to: '/documents', label: 'מסמכים', desc: 'רישיונות, ביטוחים, טלפונים וקבצים', icon: FileText },
   { to: '/settings', label: 'הגדרות', desc: 'פרטי הרכב, תזכורות, ערכת נושא וגיבוי', icon: Settings },

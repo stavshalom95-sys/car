@@ -6,6 +6,8 @@ import { FirestoreBackend, LocalBackend, type Backend } from './backend';
 import { firestore } from './firebase';
 import type { AppUser } from './auth';
 import { uid } from './format';
+import { collection, doc, onSnapshot, updateDoc } from 'firebase/firestore';
+import { parseInboxDoc, type InboxItem, type InboxStatus } from './inbox';
 
 const checklist = (texts: string[]): ChecklistItem[] => texts.map((text) => ({ id: uid(), text, done: false }));
 
@@ -45,6 +47,9 @@ interface DataState {
   expenses: Expense[];
   equipment: EquipmentItem[];
   quotes: InsuranceQuote[];
+  /** Gmail-import inbox (Firestore only; empty in local mode) */
+  inbox: InboxItem[];
+  setInboxStatus: (id: string, status: InboxStatus) => Promise<void>;
   add: (col: CollectionName, data: object) => Promise<string>;
   update: (col: CollectionName, id: string, data: object) => Promise<void>;
   /** Callers MUST ask the user for confirmation before calling this. */
@@ -74,6 +79,7 @@ export function DataProvider({ user, children }: { user: AppUser; children: Reac
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [equipment, setEquipment] = useState<EquipmentItem[]>([]);
   const [quotes, setQuotes] = useState<InsuranceQuote[]>([]);
+  const [inbox, setInbox] = useState<InboxItem[]>([]);
   const [loaded, setLoaded] = useState<Set<string>>(new Set());
   const [lastError, setLastError] = useState<string | null>(null);
 
@@ -104,11 +110,23 @@ export function DataProvider({ user, children }: { user: AppUser; children: Reac
     return () => unsubs.forEach((u) => u());
   }, [backend]);
 
+  // The import inbox lives outside the user tree (the cloud routine can only create items there)
+  useEffect(() => {
+    if (backend.kind !== 'firestore' || !firestore) return;
+    return onSnapshot(collection(firestore, 'inbox'),
+      (snap) => setInbox(snap.docs.map((d) => parseInboxDoc(d.data(), d.id)).filter((x): x is InboxItem => !!x)),
+      (e) => console.warn('inbox', e.message));
+  }, [backend]);
+
   const value: DataState = {
     ready: loaded.size >= 10 && !!settings,
     backend,
     settings: settings ?? DEFAULT_SETTINGS,
-    fuel, maintenance, tests, documents, tasks, parts, expenses, equipment, quotes,
+    fuel, maintenance, tests, documents, tasks, parts, expenses, equipment, quotes, inbox,
+    setInboxStatus: async (id, status) => {
+      if (!firestore) return;
+      updateDoc(doc(firestore, 'inbox', id), { status, reviewedAt: new Date().toISOString() }).catch(console.error);
+    },
     add: (c, d) => backend.add(c, d),
     update: (c, id, d) => backend.update(c, id, d),
     remove: (c, id) => backend.remove(c, id),

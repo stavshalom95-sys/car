@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Car, ExternalLink, Pencil, Receipt, Trash2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Car, ExternalLink, Mail, Pencil, Receipt, Trash2 } from 'lucide-react';
 import { useData } from '../lib/data';
 import { annualCost, availableYears, EXPENSE_LABEL, type AnnualCost } from '../lib/calc';
 import { daysUntil, formatDate, HE_MONTHS, monthKey, monthLabel, relativeDays, todayISO } from '../lib/dates';
@@ -156,9 +157,12 @@ export default function ExpensesPage() {
   return (
     <div className="space-y-4">
       <PageHeader title="הוצאות ועלות שנתית" action={
-        <select className="input w-auto" value={year} onChange={(e) => setYear(e.target.value)} aria-label="שנה">
-          {years.map((y) => <option key={y} value={y}>{y}</option>)}
-        </select>
+        <div className="flex items-center gap-2">
+          <Link to="/import" className="inline-flex items-center gap-1 rounded-xl px-3 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-slate-800"><Mail className="h-4 w-4" /> ייבוא מ-Gmail</Link>
+          <select className="input w-auto" value={year} onChange={(e) => setYear(e.target.value)} aria-label="שנה">
+            {years.map((y) => <option key={y} value={y}>{y}</option>)}
+          </select>
+        </div>
       } />
 
       <Card>

@@ -94,6 +94,8 @@ export interface Settings {
   /** Days before a due date at which an item becomes "urgent" */
   reminderDays: number;
   testChecklist: ChecklistItem[];
+  /** The car's Google Drive folder (uploads and the Gmail import inbox live under it) */
+  driveFolderId?: string;
 }
 
 export type PartSlot =

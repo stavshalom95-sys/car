@@ -21,6 +21,7 @@ export default function SettingsPage() {
     serviceIntervalKm: String(settings.serviceIntervalKm),
     serviceIntervalMonths: String(settings.serviceIntervalMonths),
     reminderDays: String(settings.reminderDays),
+    driveFolder: settings.driveFolderId ?? '',
   });
   const set = (k: keyof typeof f, v: string) => setF((s) => ({ ...s, [k]: v }));
 
@@ -34,6 +35,8 @@ export default function SettingsPage() {
         serviceIntervalKm: parseNum(f.serviceIntervalKm) || 15000,
         serviceIntervalMonths: parseNum(f.serviceIntervalMonths) || 12,
         reminderDays: parseNum(f.reminderDays) || 30,
+        // Accept a folder link or a bare id
+        driveFolderId: (f.driveFolder.match(/folders\/([\w-]+)/)?.[1] ?? f.driveFolder.trim()) || undefined,
       });
       toast('ההגדרות נשמרו');
     } catch (e) {
@@ -64,6 +67,7 @@ export default function SettingsPage() {
             <input type="number" inputMode="numeric" className="input" value={f.baseOdometer} onChange={(e) => set('baseOdometer', e.target.value)} />
           </Field>
           <Field label="נכון לתאריך"><input type="date" className="input" value={f.baseOdometerDate} onChange={(e) => set('baseOdometerDate', e.target.value)} /></Field>
+          <Field label="תיקיית הרכב ב-Google Drive" hint="קישור לתיקייה – לייבוא מ-Gmail ולהעלאת קבצים" className="sm:col-span-2"><input className="input" dir="ltr" value={f.driveFolder} onChange={(e) => set('driveFolder', e.target.value)} placeholder="https://drive.google.com/drive/folders/..." /></Field>
         </div>
       </Card>
 

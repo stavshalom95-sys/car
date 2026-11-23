@@ -15,6 +15,7 @@ import MorePage from './pages/More';
 import ExpensesPage from './pages/Expenses';
 import EquipmentPage from './pages/Equipment';
 import InsurancePage from './pages/Insurance';
+import ImportPage from './pages/Import';
 
 function Loading() {
   return (
@@ -41,6 +42,7 @@ function Routed() {
         <Route path="expenses" element={<ExpensesPage />} />
         <Route path="equipment" element={<EquipmentPage />} />
         <Route path="insurance" element={<InsurancePage />} />
+        <Route path="import" element={<ImportPage />} />
         <Route path="*" element={<Dashboard />} />
       </Route>
     </Routes>

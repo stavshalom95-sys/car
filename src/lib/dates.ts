@@ -18,7 +18,8 @@ export function parseISO(s: string): Date {
 export const todayISO = () => toISO(new Date());
 
 export function isValidISO(s: string | undefined): s is string {
-  return !!s && /^\d{4}-\d{2}-\d{2}$/.test(s) && !isNaN(parseISO(s).getTime());
+  // Round-trip so impossible dates (2026-13-45, 2026-02-30) are rejected instead of rolling over
+  return !!s && /^\d{4}-\d{2}-\d{2}$/.test(s) && toISO(parseISO(s)) === s;
 }
 
 export function daysBetween(a: string, b: string): number {

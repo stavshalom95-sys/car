@@ -5,6 +5,38 @@ service cloud.firestore {
     match /users/{uid}/{document=**} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
     }
+
+    // Gmail import inbox: a write-only drop box for the monthly cloud routine.
+    // The routine (unauthenticated) may only CREATE a new pending item in a strict shape, proving it
+    // knows the inbox key (only its SHA-256 is stored here). It can never read, change or delete.
+    // Items reach the expenses only after the owner approves them in the app.
+    match /inbox/{id} {
+      allow read, update, delete: if request.auth != null && request.auth.uid == 'jNkfJyZ8olhazJ7GxM4Lk4Hh7S92';
+      allow create: if isValidInboxItem(id, request.resource.data);
+    }
+
+    function isValidInboxItem(id, d) {
+      return d.keys().hasAll(['key', 'id', 'status', 'category', 'date', 'amount', 'description', 'createdAt'])
+        && d.keys().hasOnly(['key', 'id', 'status', 'category', 'date', 'amount', 'description', 'location',
+                             'receiptUrl', 'notes', 'needsReview', 'reviewReason', 'source', 'sourceMessageId', 'createdAt'])
+        && d.key is string
+        && hashing.sha256(d.key).toHexString().lower() == '63c9114d896f723e133f51fe425f802bc8e66b356758d90cd63f238a391bf6a8'
+        && d.id == id && id.matches('^imp-[a-z0-9-]{3,60}$')
+        && d.status == 'pending'
+        && d.category in ['parking', 'toll', 'fine', 'wash', 'other']
+        && d.date is string && d.date.matches('^20[0-9]{2}-[01][0-9]-[0-3][0-9]$')
+        && (d.amount == null || (d.amount is number && d.amount > 0 && d.amount < 100000))
+        && d.description is string && d.description.size() > 0 && d.description.size() <= 300
+        && (!('location' in d) || (d.location is string && d.location.size() <= 120))
+        && (!('receiptUrl' in d) || (d.receiptUrl is string && d.receiptUrl.matches('^https://mail[.]google[.]com/.{1,400}$')))
+        && (!('notes' in d) || (d.notes is string && d.notes.size() <= 500))
+        && (!('needsReview' in d) || d.needsReview is bool)
+        && (!('reviewReason' in d) || (d.reviewReason is string && d.reviewReason.size() <= 300))
+        && (!('source' in d) || d.source in ['pango', 'kvish6', 'other'])
+        && (!('sourceMessageId' in d) || (d.sourceMessageId is string && d.sourceMessageId.size() <= 40))
+        && d.createdAt is string && d.createdAt.size() <= 40;
+    }
+
     // Everything else is closed
     match /{document=**} {
       allow read, write: if false;

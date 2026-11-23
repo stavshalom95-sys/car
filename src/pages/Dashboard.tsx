@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronLeft, Gauge, ShoppingCart, Siren, Trash2, TrendingDown, TrendingUp } from 'lucide-react';
+import { ChevronLeft, Gauge, Mail, ShoppingCart, Siren, Trash2, TrendingDown, TrendingUp } from 'lucide-react';
 import { useData } from '../lib/data';
+import { pendingItems } from '../lib/inbox';
 import { annualCost, buildDueItems, estimateOdometer, latestAnomaly, type DueItem } from '../lib/calc';
 import { formatMoney } from '../lib/format';
 import { formatDate, relativeDays } from '../lib/dates';
@@ -106,6 +107,7 @@ export default function Dashboard() {
   const urgent = items.filter((i) => i.severity === 'overdue' || i.severity === 'urgent');
   const later = items.filter((i) => i.severity === 'soon' || i.severity === 'missing');
   const ok = items.filter((i) => i.severity === 'ok');
+  const inboxCount = useMemo(() => pendingItems(data.inbox, data.expenses).length, [data.inbox, data.expenses]);
 
   return (
     <div className="space-y-5">
@@ -129,6 +131,13 @@ export default function Dashboard() {
         <span className="text-sm muted">עלות הרכב השנה עד כה</span>
         <span className="flex items-center gap-1 text-lg font-bold tabular-nums">{formatMoney(ytd.total)} <ChevronLeft className="h-5 w-5 text-slate-400" /></span>
       </Link>
+      {inboxCount > 0 && (
+        <Link to="/import" className="card flex items-center gap-3 border-blue-300 bg-blue-50 py-3 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-950/50 dark:hover:bg-blue-950">
+          <Mail className="h-6 w-6 text-blue-700 dark:text-blue-400" />
+          <span className="flex-1 font-medium">{inboxCount === 1 ? 'קבלה חדשה מ-Gmail ממתינה לאישור' : `${inboxCount} קבלות חדשות מ-Gmail ממתינות לאישור`}</span>
+          <ChevronLeft className="h-5 w-5 text-slate-400" />
+        </Link>
+      )}
       {!odo && (
         <Alert tone="info">
           כדי להעריך קילומטראז׳, הזן קריאת מד אוץ ידועה ב<Link to="/settings" className="font-medium underline">הגדרות</Link> או ק״מ בטיפול האחרון.
