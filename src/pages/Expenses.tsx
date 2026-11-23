@@ -8,6 +8,7 @@ import { formatMoney, parseNum } from '../lib/format';
 import { useSave } from '../lib/hooks';
 import type { Expense, ExpenseCategory } from '../lib/types';
 import { Alert, Badge, Button, Card, cx, EmptyState, Fab, Field, IconButton, Modal, PageHeader, useConfirm } from '../components/ui';
+import DriveUpload from '../components/DriveUpload';
 
 const CATS = Object.keys(EXPENSE_LABEL) as ExpenseCategory[];
 const PLACEHOLDER: Record<ExpenseCategory, string> = {
@@ -75,7 +76,12 @@ function ExpenseForm({ entry, onClose }: { entry: Expense | null; onClose: () =>
           </label>
         </div>
       )}
-      <Field label="קישור לקבלה" hint="קישור ל-Google Drive"><input type="url" className="input" value={f.receiptUrl} onChange={(e) => set('receiptUrl', e.target.value)} placeholder="https://drive.google.com/…" /></Field>
+      <Field label="קישור לקבלה" hint="קישור ל-Google Drive, או העלאה ישירה לתיקיית ההוצאות">
+        <div className="flex gap-2">
+          <input type="url" className="input" value={f.receiptUrl} onChange={(e) => set('receiptUrl', e.target.value)} placeholder="https://drive.google.com/…" />
+          <DriveUpload kind="expenses" date={f.date} label={`${EXPENSE_LABEL[f.category]}${f.description.trim() ? ` ${f.description.trim()}` : ''}`} onUploaded={(u) => set('receiptUrl', u)} />
+        </div>
+      </Field>
       <Field label="הערות"><input className="input" value={f.notes} onChange={(e) => set('notes', e.target.value)} /></Field>
       {errors.length > 0 && <Alert tone="error">{errors.map((x) => <p key={x}>{x}</p>)}</Alert>}
       {warn && <Alert>{warn}</Alert>}

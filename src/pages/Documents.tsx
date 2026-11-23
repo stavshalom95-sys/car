@@ -2,11 +2,13 @@ import { useState } from 'react';
 import { ExternalLink, FileText, Pencil, Phone as PhoneIcon, Plus, ShieldAlert, Trash2, X } from 'lucide-react';
 import { useData } from '../lib/data';
 import { severityFor } from '../lib/calc';
-import { daysUntil, formatDate, relativeDays } from '../lib/dates';
+import { daysUntil, formatDate, relativeDays, todayISO } from '../lib/dates';
 import { formatMoney, parseNum } from '../lib/format';
 import { useSave } from '../lib/hooks';
 import type { CarDocument, DocType, Phone } from '../lib/types';
 import { Alert, Badge, Button, Card, EmptyState, Fab, Field, IconButton, Modal, PageHeader, SEVERITY_BORDER, cx, useConfirm } from '../components/ui';
+import DriveUpload from '../components/DriveUpload';
+import { docUploadKind } from '../lib/upload';
 
 export const DOC_TYPE_LABEL: Record<DocType, string> = {
   vehicle_license: 'רישיון רכב',
@@ -84,8 +86,11 @@ function DocForm({ doc, onClose }: { doc: CarDocument | null; onClose: () => voi
         </button>
       </div>
 
-      <Field label="קישור לקובץ" hint="קישור ל-Google Drive (העלאה ישירה תתווסף בשלב הבא)">
-        <input type="url" className="input" value={f.fileUrl} onChange={(e) => set('fileUrl', e.target.value)} placeholder="https://drive.google.com/…" />
+      <Field label="קישור לקובץ" hint="קישור ל-Google Drive, או העלאה ישירה לתיקיית הרכב">
+        <div className="flex gap-2">
+          <input type="url" className="input" value={f.fileUrl} onChange={(e) => set('fileUrl', e.target.value)} placeholder="https://drive.google.com/…" />
+          <DriveUpload kind={docUploadKind(f.type)} date={todayISO()} label={f.title.trim() || DOC_TYPE_LABEL[f.type]} onUploaded={(u) => set('fileUrl', u)} />
+        </div>
       </Field>
       <Field label="הערות"><textarea rows={2} className="input" value={f.notes} onChange={(e) => set('notes', e.target.value)} /></Field>
       {errors.length > 0 && <Alert tone="error">{errors.map((x) => <p key={x}>{x}</p>)}</Alert>}

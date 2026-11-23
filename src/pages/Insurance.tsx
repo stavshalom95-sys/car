@@ -11,6 +11,7 @@ import { formatMoney, parseNum } from '../lib/format';
 import { useSave } from '../lib/hooks';
 import type { InsuranceQuote } from '../lib/types';
 import { Alert, Badge, Button, Card, cx, EmptyState, Fab, Field, IconButton, Modal, PageHeader, useConfirm, useToast } from '../components/ui';
+import DriveUpload from '../components/DriveUpload';
 
 const pct = (part: number, whole: number) => (whole ? Math.round((part / whole) * 100) : 0);
 
@@ -108,7 +109,12 @@ function QuoteForm({ quote, onClose }: { quote: InsuranceQuote | null; onClose: 
         <Field label="המחיר בתוקף עד" hint="לא חובה"><input type="date" className="input" value={f.validUntil} onChange={(e) => set('validUntil', e.target.value)} /></Field>
         <Field label="סוכן / ערוץ" hint="לא חובה"><input className="input" value={f.agent} onChange={(e) => set('agent', e.target.value)} placeholder="אתר / סוכן" /></Field>
       </div>
-      <Field label="קישור להצעה (Drive)" hint="לא חובה"><input className="input" dir="ltr" value={f.url} onChange={(e) => set('url', e.target.value)} placeholder="https://drive.google.com/..." /></Field>
+      <Field label="קישור להצעה (Drive)" hint="לא חובה – אפשר גם להעלות את קובץ ההצעה">
+        <div className="flex gap-2">
+          <input className="input" dir="ltr" value={f.url} onChange={(e) => set('url', e.target.value)} placeholder="https://drive.google.com/..." />
+          <DriveUpload kind="insurance" date={f.date} label={`הצעת ביטוח ${f.insurer.trim()}`} onUploaded={(u) => set('url', u)} />
+        </div>
+      </Field>
       <Field label="הערות"><input className="input" value={f.notes} onChange={(e) => set('notes', e.target.value)} placeholder="נהג צעיר, החרגות, תנאים..." /></Field>
       {uniqErrors.length > 0 && f.insurer && <Alert tone="error">{uniqErrors.map((x) => <p key={x}>{x}</p>)}</Alert>}
     </Modal>

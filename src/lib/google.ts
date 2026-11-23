@@ -97,14 +97,22 @@ export async function driveReadText(token: string, fileId: string): Promise<stri
   return r.text();
 }
 
-/** Upload a file (multipart) into a folder. Returns the created file with its view link. */
+/** Upload a file into a folder (resumable upload, so large phone photos work too). Returns the file with its view link. */
 export async function driveUpload(token: string, parentId: string, file: Blob, name: string): Promise<DriveFile> {
-  const form = new FormData();
-  form.append('metadata', new Blob([JSON.stringify({ name, parents: [parentId] })], { type: 'application/json' }));
-  form.append('file', file);
-  return api<DriveFile>(token, 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,mimeType,webViewLink', {
-    method: 'POST', body: form,
+  const start = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id,name,mimeType,webViewLink', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`, 'Content-Type': 'application/json; charset=UTF-8',
+      'X-Upload-Content-Type': file.type || 'application/octet-stream', 'X-Upload-Content-Length': String(file.size),
+    },
+    body: JSON.stringify({ name, parents: [parentId] }),
   });
+  if (start.status === 401) { forgetGoogleToken(); throw new Error('ההרשאה ל-Google פגה – התחבר שוב'); }
+  const session = start.headers.get('Location');
+  if (!start.ok || !session) throw new Error(`Google Drive ${start.status}: ההעלאה לא התחילה`);
+  const put = await fetch(session, { method: 'PUT', headers: { 'Content-Type': file.type || 'application/octet-stream' }, body: file });
+  if (!put.ok) throw new Error(`Google Drive ${put.status}: ההעלאה נכשלה`);
+  return put.json();
 }
 
 // ---------------------------------------------------------------------------

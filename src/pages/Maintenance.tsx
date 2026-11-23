@@ -7,6 +7,7 @@ import { formatMoney, formatNumber, parseNum } from '../lib/format';
 import { useSave } from '../lib/hooks';
 import type { MaintenanceEntry, MaintenanceKind } from '../lib/types';
 import { Alert, Button, Card, EmptyState, Fab, Field, IconButton, Modal, PageHeader, useConfirm } from '../components/ui';
+import DriveUpload from '../components/DriveUpload';
 
 export const KIND_LABEL: Record<MaintenanceKind, string> = {
   service: 'טיפול תקופתי',
@@ -82,8 +83,11 @@ function MaintenanceForm({ entry, onClose, odoKm }: { entry: MaintenanceEntry | 
         <input className="input" list="garages" value={f.garage} onChange={(e) => set('garage', e.target.value)} />
         <datalist id="garages">{garages.map((g) => <option key={g} value={g} />)}</datalist>
       </Field>
-      <Field label="קישור לחשבונית" hint="קישור לקובץ ב-Google Drive (העלאה ישירה תתווסף בשלב הבא)">
-        <input type="url" className="input" value={f.invoiceUrl} onChange={(e) => set('invoiceUrl', e.target.value)} placeholder="https://drive.google.com/…" />
+      <Field label="קישור לחשבונית" hint="קישור ל-Google Drive, או העלאה ישירה לתיקיית הטיפולים">
+        <div className="flex gap-2">
+          <input type="url" className="input" value={f.invoiceUrl} onChange={(e) => set('invoiceUrl', e.target.value)} placeholder="https://drive.google.com/…" />
+          <DriveUpload kind="maintenance" date={f.date} label={f.description.trim() || 'חשבונית טיפול'} onUploaded={(u) => set('invoiceUrl', u)} />
+        </div>
       </Field>
       <Field label="הערות"><input className="input" value={f.notes} onChange={(e) => set('notes', e.target.value)} /></Field>
       {errors.length > 0 && f.description && <Alert tone="error">{errors.map((x) => <p key={x}>{x}</p>)}</Alert>}
