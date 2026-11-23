@@ -11,17 +11,17 @@ import { Alert, Button, Card, cx, EmptyState, Fab, Field, IconButton, Modal, Pag
 
 interface FormState {
   date: string; station: string; liters: string; totalPrice: string; tripKm: string;
-  fullTank: boolean; excluded: boolean; notes: string;
+  fullTank: boolean; excluded: boolean; costOnly: boolean; notes: string;
 }
 
-const empty = (): FormState => ({ date: todayISO(), station: '', liters: '', totalPrice: '', tripKm: '', fullTank: true, excluded: false, notes: '' });
+const empty = (): FormState => ({ date: todayISO(), station: '', liters: '', totalPrice: '', tripKm: '', fullTank: true, excluded: false, costOnly: false, notes: '' });
 
 function FuelForm({ entry, onClose }: { entry: FuelEntry | null; onClose: () => void }) {
   const { fuel } = useData();
   const save = useSave('fuel');
   const [f, setF] = useState<FormState>(() =>
     entry
-      ? { date: entry.date, station: entry.station, liters: String(entry.liters), totalPrice: String(entry.totalPrice), tripKm: String(entry.tripKm), fullTank: entry.fullTank, excluded: !!entry.excluded, notes: entry.notes ?? '' }
+      ? { date: entry.date, station: entry.station, liters: entry.liters != null ? String(entry.liters) : '', totalPrice: String(entry.totalPrice), tripKm: entry.tripKm != null ? String(entry.tripKm) : '', fullTank: entry.fullTank, excluded: !!entry.excluded, costOnly: !!entry.costOnly, notes: entry.notes ?? '' }
       : empty(),
   );
   const [ack, setAck] = useState(false);
@@ -30,9 +30,10 @@ function FuelForm({ entry, onClose }: { entry: FuelEntry | null; onClose: () => 
   const stations = useMemo(() => [...new Set(fuel.map((e) => e.station).filter(Boolean))], [fuel]);
   const parsed: Partial<FuelEntry> = {
     id: entry?.id, date: f.date, station: f.station.trim(), liters: parseNum(f.liters), totalPrice: parseNum(f.totalPrice),
-    tripKm: parseNum(f.tripKm), fullTank: f.fullTank,
+    tripKm: parseNum(f.tripKm), fullTank: f.fullTank, costOnly: f.costOnly,
   };
-  const touched = f.liters !== '' && f.totalPrice !== '' && f.tripKm !== '';
+  if (f.costOnly) { parsed.liters = undefined; parsed.tripKm = undefined; parsed.fullTank = false; }
+  const touched = f.costOnly ? f.totalPrice !== '' : f.liters !== '' && f.totalPrice !== '' && f.tripKm !== '';
   const v = touched ? validateFuel(parsed, fuel) : { errors: [], warnings: [] };
   const ppl = parsed.liters && parsed.totalPrice ? parsed.totalPrice / parsed.liters : undefined;
   const kmpl = parsed.liters && parsed.tripKm ? parsed.tripKm / parsed.liters : undefined;
@@ -42,7 +43,7 @@ function FuelForm({ entry, onClose }: { entry: FuelEntry | null; onClose: () => 
     if (res.errors.length || (res.warnings.length && !ack)) return;
     const { id: _id, ...data } = parsed;
     void _id;
-    if (await save({ ...data, excluded: f.excluded, notes: f.notes.trim() }, entry?.id)) onClose();
+    if (await save({ ...data, excluded: f.costOnly || f.excluded, notes: f.notes.trim() }, entry?.id)) onClose();
   };
 
   const blocked = !touched || v.errors.length > 0 || (v.warnings.length > 0 && !ack);
@@ -59,17 +60,23 @@ function FuelForm({ entry, onClose }: { entry: FuelEntry | null; onClose: () => 
           <input className="input" list="stations" value={f.station} onChange={(e) => set('station', e.target.value)} placeholder="פז, דלק, סונול…" />
           <datalist id="stations">{stations.map((s) => <option key={s} value={s} />)}</datalist>
         </Field>
-        <Field label="ליטרים"><input type="number" inputMode="decimal" step="0.01" className="input" value={f.liters} onChange={(e) => set('liters', e.target.value)} /></Field>
+        {!f.costOnly && <Field label="ליטרים"><input type="number" inputMode="decimal" step="0.01" className="input" value={f.liters} onChange={(e) => set('liters', e.target.value)} /></Field>}
         <Field label="מחיר כולל (₪)" hint={ppl ? `₪${ppl.toFixed(2)} לליטר` : undefined}>
           <input type="number" inputMode="decimal" step="0.01" className="input" value={f.totalPrice} onChange={(e) => set('totalPrice', e.target.value)} />
         </Field>
-        <Field label="ק״מ מאז התדלוק הקודם" className="col-span-2" hint={kmpl && f.fullTank ? `צריכה: ${kmpl.toFixed(1)} ק״מ/ל׳` : 'מד המרחק היומי (Trip) לפני האיפוס'}>
+        {!f.costOnly && <Field label="ק״מ מאז התדלוק הקודם" className="col-span-2" hint={kmpl && f.fullTank ? `צריכה: ${kmpl.toFixed(1)} ק״מ/ל׳` : 'מד המרחק היומי (Trip) לפני האיפוס'}>
           <input type="number" inputMode="numeric" className="input" value={f.tripKm} onChange={(e) => set('tripKm', e.target.value)} />
-        </Field>
+        </Field>}
       </div>
-      <label className="flex items-center gap-2">
-        <input type="checkbox" className="h-5 w-5 accent-blue-700" checked={f.fullTank} onChange={(e) => set('fullTank', e.target.checked)} />
-        מילאתי מיכל מלא
+      {!f.costOnly && (
+        <label className="flex items-center gap-2">
+          <input type="checkbox" className="h-5 w-5 accent-blue-700" checked={f.fullTank} onChange={(e) => set('fullTank', e.target.checked)} />
+          מילאתי מיכל מלא
+        </label>
+      )}
+      <label className="flex items-center gap-2 text-sm">
+        <input type="checkbox" className="h-4 w-4" checked={f.costOnly} onChange={(e) => set('costOnly', e.target.checked)} />
+        יש לי רק את הסכום (ללא ליטרים וק״מ) – ייספר בהוצאות בלבד
       </label>
       <Field label="הערות"><input className="input" value={f.notes} onChange={(e) => set('notes', e.target.value)} /></Field>
 
@@ -87,7 +94,7 @@ function FuelForm({ entry, onClose }: { entry: FuelEntry | null; onClose: () => 
           </label>
         </Alert>
       )}
-      {entry && v.warnings.length === 0 && (
+      {entry && !f.costOnly && v.warnings.length === 0 && (
         <label className="flex items-center gap-2 text-sm muted">
           <input type="checkbox" className="h-4 w-4" checked={f.excluded} onChange={(e) => setF((s) => ({ ...s, excluded: e.target.checked }))} />
           אל תכלול בחישובי הצריכה
@@ -151,8 +158,8 @@ export default function FuelPage() {
 
   const sum = (xs: FuelEntry[]) => {
     const cost = xs.reduce((s, e) => s + e.totalPrice, 0);
-    const liters = xs.reduce((s, e) => s + e.liters, 0);
-    const km = xs.reduce((s, e) => s + e.tripKm, 0);
+    const liters = xs.reduce((s, e) => s + (e.liters ?? 0), 0);
+    const km = xs.reduce((s, e) => s + (e.tripKm ?? 0), 0);
     const avg = averageConsumption(xs.filter((e) => kmpl.has(e.id)));
     return { cost, liters, km, avg };
   };
@@ -193,7 +200,7 @@ export default function FuelPage() {
               <section key={y}>
                 <div className="mb-2 flex items-baseline justify-between">
                   <h2 className="text-xl font-bold">{y}</h2>
-                  <span className="text-sm muted">{formatMoney(ys.cost)} · {formatNumber(ys.liters)} ל׳ · {formatNumber(ys.km)} ק״מ</span>
+                  <span className="text-sm muted">{formatMoney(ys.cost)}{ys.liters > 0 && ` · ${formatNumber(ys.liters)} ל׳`}{ys.km > 0 && ` · ${formatNumber(ys.km)} ק״מ`}</span>
                 </div>
                 <div className="space-y-3">
                   {[...months.entries()].map(([m, entries]) => {
@@ -203,7 +210,7 @@ export default function FuelPage() {
                         <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-slate-200 px-4 py-2.5 dark:border-slate-800">
                           <h3 className="font-semibold">{monthLabel(m)}</h3>
                           <span className="text-sm muted">
-                            {formatMoney(ms.cost)} · {formatNumber(ms.liters, 1)} ל׳{ms.avg ? ` · ${formatNumber(ms.avg, 1)} ק״מ/ל׳` : ''}
+                            {formatMoney(ms.cost)}{ms.liters > 0 && ` · ${formatNumber(ms.liters, 1)} ל׳`}{ms.avg ? ` · ${formatNumber(ms.avg, 1)} ק״מ/ל׳` : ''}
                           </span>
                         </div>
                         <ul className="divide-y divide-slate-200 dark:divide-slate-800">
@@ -216,11 +223,12 @@ export default function FuelPage() {
                                   <div className="flex flex-wrap items-center gap-x-2 text-sm">
                                     <span className="font-medium">{formatDate(e.date)}</span>
                                     <span className="muted">{e.station || '—'}</span>
-                                    {!e.fullTank && <span className="rounded bg-slate-200 px-1.5 text-xs dark:bg-slate-800">חלקי</span>}
-                                    {e.excluded && <span className="rounded bg-slate-200 px-1.5 text-xs dark:bg-slate-800">לא נכלל</span>}
+                                    {e.costOnly && <span className="rounded bg-slate-200 px-1.5 text-xs dark:bg-slate-800">סכום בלבד</span>}
+                                    {!e.costOnly && !e.fullTank && <span className="rounded bg-slate-200 px-1.5 text-xs dark:bg-slate-800">חלקי</span>}
+                                    {!e.costOnly && e.excluded && <span className="rounded bg-slate-200 px-1.5 text-xs dark:bg-slate-800">לא נכלל</span>}
                                   </div>
                                   <div className="text-sm">
-                                    {formatMoney(e.totalPrice, true)} · {formatNumber(e.liters, 2)} ל׳ · {formatNumber(e.tripKm)} ק״מ
+                                    {formatMoney(e.totalPrice, true)}{!e.costOnly && <> · {formatNumber(e.liters, 2)} ל׳ · {formatNumber(e.tripKm)} ק״מ</>}
                                     {c && (
                                       <span className={cx('ms-1 font-medium', a ? (a.deviation < 0 ? 'text-red-700 dark:text-red-400' : 'text-amber-700 dark:text-amber-400') : 'text-emerald-700 dark:text-emerald-400')}>
                                         · {formatNumber(c, 1)} ק״מ/ל׳{a ? ` (${a.deviation > 0 ? '+' : ''}${Math.round(a.deviation * 100)}%)` : ''}

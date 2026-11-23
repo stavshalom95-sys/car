@@ -7,11 +7,14 @@ export interface BaseDoc {
 export interface FuelEntry extends BaseDoc {
   date: string; // YYYY-MM-DD
   station: string;
-  liters: number;
+  /** Missing on cost-only entries */
+  liters?: number;
   totalPrice: number;
-  /** Trip meter: km driven since the previous fill-up */
-  tripKm: number;
+  /** Trip meter: km driven since the previous fill-up. Missing on cost-only entries. */
+  tripKm?: number;
   fullTank: boolean;
+  /** Only the amount is known (e.g. imported history): counts toward costs, never toward consumption or mileage */
+  costOnly?: boolean;
   /** Excluded from statistics (e.g. a known typo the user wants to keep) */
   excluded?: boolean;
   notes?: string;

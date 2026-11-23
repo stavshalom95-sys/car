@@ -31,6 +31,20 @@ describe('consumption', () => {
   });
 });
 
+describe('cost-only entries', () => {
+  const co = (id: string, date: string, totalPrice: number): FuelEntry => ({ id, date, station: 'פז', totalPrice, fullTank: false, costOnly: true, excluded: true });
+  it('are ignored by consumption and anomaly detection', () => {
+    const rows = [f('a', '2026-01-01', 40, 600), co('b', '2026-01-15', 300), f('c', '2026-02-01', 40, 600)];
+    expect(consumptionById(rows).has('b')).toBe(false);
+    expect(consumptionById(rows).get('c')).toBeCloseTo(15);
+    expect(consumptionAnomalies([...rows, co('d', '2026-03-01', 250)])).toHaveLength(0);
+  });
+  it('validate the amount only', () => {
+    expect(validateFuel({ date: '2026-01-01', totalPrice: 250, costOnly: true }, []).errors).toHaveLength(0);
+    expect(validateFuel({ date: '2026-01-01', totalPrice: 0, costOnly: true }, []).errors).toHaveLength(1);
+  });
+});
+
 describe('odometer + service prediction', () => {
   const maint: MaintenanceEntry[] = [{ id: 'm', date: '2026-01-01', odometer: 60000, kind: 'service', description: 's', parts: [], cost: 0, garage: '' }];
 

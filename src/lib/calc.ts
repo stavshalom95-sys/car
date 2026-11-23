@@ -17,7 +17,7 @@ export function consumptionById(fuel: FuelEntry[]): Map<string, number> {
   const res = new Map<string, number>();
   let accKm = 0;
   let accL = 0;
-  for (const e of [...fuel].filter((f) => !f.excluded).sort(byDateAsc)) {
+  for (const e of [...fuel].filter((f) => !f.excluded && !f.costOnly).sort(byDateAsc)) {
     accKm += e.tripKm || 0;
     accL += e.liters || 0;
     if (e.fullTank) {
@@ -78,8 +78,8 @@ export function averageConsumption(fuel: FuelEntry[], lastN?: number): number | 
   if (lastN) rows = rows.slice(-lastN);
   if (!rows.length) return null;
   // Distance-weighted (total km / total liters) is more accurate than averaging ratios
-  const km = rows.reduce((s, f) => s + f.tripKm, 0);
-  const liters = rows.reduce((s, f) => s + f.tripKm / kmpl.get(f.id)!, 0);
+  const km = rows.reduce((s, f) => s + (f.tripKm ?? 0), 0);
+  const liters = rows.reduce((s, f) => s + (f.tripKm ?? 0) / kmpl.get(f.id)!, 0);
   return liters > 0 ? km / liters : null;
 }
 
@@ -115,7 +115,8 @@ export function estimateOdometer(
 /** Average km per day over the last `days` days of fuel log. */
 export function avgKmPerDay(fuel: FuelEntry[], days = 180): number | null {
   const from = addDays(todayISO(), -days);
-  const rows = fuel.filter((f) => f.date >= from).sort(byDateAsc);
+  // Cost-only entries have no trip km, so they would wrongly lower the rate
+  const rows = fuel.filter((f) => f.date >= from && !f.costOnly && (f.tripKm ?? 0) > 0).sort(byDateAsc);
   if (rows.length < 2) return null;
   const span = daysBetween(rows[0].date, rows[rows.length - 1].date);
   if (span < 7) return null;

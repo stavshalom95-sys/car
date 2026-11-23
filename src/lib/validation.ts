@@ -106,6 +106,12 @@ export function validateFuel(e: Partial<FuelEntry>, history: FuelEntry[]): Valid
   if (!isValidISO(date)) errors.push('תאריך לא תקין');
   else if (date > todayISO()) errors.push('התאריך בעתיד');
 
+  if (e.costOnly) {
+    if (totalPrice == null || totalPrice <= 0) errors.push('יש להזין מחיר כולל חיובי');
+    else if (totalPrice > 600) warnings.push(`₪${totalPrice} בתדלוק אחד – יותר ממיכל מלא. אולי טעות הקלדה?`);
+    return { errors, warnings };
+  }
+
   if (liters == null || liters <= 0) errors.push('יש להזין כמות ליטרים חיובית');
   if (totalPrice == null || totalPrice <= 0) errors.push('יש להזין מחיר כולל חיובי');
   if (tripKm == null || tripKm < 0) errors.push('יש להזין ק״מ (מד מרחק יומי) אפס או יותר');
@@ -127,7 +133,7 @@ export function validateFuel(e: Partial<FuelEntry>, history: FuelEntry[]): Valid
   if (tripKm === 0) warnings.push('מד המרחק היומי הוא 0 – התדלוק לא ייכלל בחישוב הצריכה.');
 
   const dup = history.find(
-    (h) => h.id !== e.id && h.date === date && Math.abs(h.liters - liters!) < 0.01 && Math.abs(h.totalPrice - totalPrice!) < 0.01,
+    (h) => h.id !== e.id && h.date === date && Math.abs((h.liters ?? 0) - liters!) < 0.01 && Math.abs(h.totalPrice - totalPrice!) < 0.01,
   );
   if (dup) warnings.push('קיים כבר תדלוק זהה באותו תאריך – ייתכן כפילות.');
 
