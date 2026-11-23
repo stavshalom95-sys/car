@@ -1,5 +1,5 @@
 import {
-  collection, deleteDoc, doc, onSnapshot, setDoc, updateDoc, type Firestore,
+  collection, deleteDoc, deleteField, doc, onSnapshot, setDoc, updateDoc, type Firestore,
 } from 'firebase/firestore';
 import type { BaseDoc } from './types';
 import { scanObject, SensitiveDataError } from './validation';
@@ -58,7 +58,9 @@ export class FirestoreBackend implements Backend {
     guard(data);
     const { id: _ignored, ...rest } = data as BaseDoc;
     void _ignored;
-    updateDoc(doc(this.col(name), id), clean({ ...rest, updatedAt: Date.now() })).catch(console.error);
+    // A field explicitly set to undefined was cleared in a form: delete it (clean() alone would keep the old value)
+    const cleared = Object.entries(rest).filter(([, v]) => v === undefined).map(([k]) => [k, deleteField()]);
+    updateDoc(doc(this.col(name), id), { ...clean({ ...rest, updatedAt: Date.now() }), ...Object.fromEntries(cleared) }).catch(console.error);
   }
 
   async remove(name: string, id: string) {

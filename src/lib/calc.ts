@@ -1,5 +1,6 @@
-import type { CarDocument, EquipmentItem, Expense, ExpenseCategory, FuelEntry, MaintenanceEntry, PartInfo, Settings, Task, TestEntry } from './types';
+import type { CarDocument, EquipmentItem, Expense, ExpenseCategory, FuelEntry, InsuranceQuote, MaintenanceEntry, PartInfo, Settings, Task, TestEntry } from './types';
 import { computeParts } from './parts';
+import { currentPolicy, isFreshQuote, renewal } from './insurance';
 import { addDays, addMonths, daysBetween, daysUntil, formatDate, todayISO } from './dates';
 import { formatNumber } from './format';
 
@@ -225,6 +226,7 @@ export function buildDueItems(input: {
   parts?: PartInfo[];
   expenses?: Expense[];
   equipment?: EquipmentItem[];
+  quotes?: InsuranceQuote[];
 }): DueItem[] {
   const { settings, fuel, maintenance, tests, documents, tasks } = input;
   const items: DueItem[] = [];
@@ -245,6 +247,8 @@ export function buildDueItems(input: {
   // Documents (vehicle license is covered by the test item)
   for (const doc of documents) {
     if (doc.type === 'vehicle_license' || !doc.expiryDate) continue;
+    // Renewed: a newer document of the same type supersedes this one (e.g. last year's insurance)
+    if (doc.type !== 'other' && documents.some((o) => o.id !== doc.id && o.type === doc.type && (o.expiryDate ?? '') > doc.expiryDate!)) continue;
     const d = daysUntil(doc.expiryDate);
     items.push({
       id: `doc-${doc.id}`, title: `חידוש ${doc.title || DOC_LABEL[doc.type]}`,
@@ -256,6 +260,17 @@ export function buildDueItems(input: {
     if (!documents.some((d) => d.type === t)) {
       items.push({ id: `missing-${t}`, title: DOC_LABEL[t], detail: 'לא הוזן מסמך – הוסף כדי לקבל תזכורת חידוש', severity: 'missing', link: '/documents' });
     }
+  }
+
+  // Insurance renewal: nudge to collect quotes before the policy ends
+  const ren = renewal(currentPolicy(documents));
+  if (ren && ren.days >= 0 && todayISO() >= ren.windowStart) {
+    const fresh = (input.quotes ?? []).filter((q) => isFreshQuote(q, ren.periodStart)).length;
+    items.push({
+      id: 'insurance-quotes', title: 'השוואת הצעות לביטוח',
+      detail: `הביטוח מתחדש ב-${formatDate(ren.date)} · ${fresh ? `התקבלו ${fresh} הצעות` : 'עדיין לא התקבלו הצעות'}`,
+      dueDate: ren.date, daysLeft: ren.days, severity: fresh >= 2 ? 'ok' : 'soon', link: '/insurance',
+    });
   }
 
   // Service

@@ -143,4 +143,30 @@ export interface EquipmentItem extends BaseDoc {
   notes?: string;
 }
 
-export type CollectionName = 'fuel' | 'maintenance' | 'tests' | 'documents' | 'tasks' | 'parts' | 'expenses' | 'equipment';
+/** A quote for renewing / switching car insurance. Prices are annual, in ILS. */
+export interface InsuranceQuote extends BaseDoc {
+  insurer: string;
+  /** Date the quote was received */
+  date: string;
+  /** Annual price of comprehensive cover (missing = not part of this quote) */
+  comprehensive?: number;
+  /** Annual price of compulsory cover (missing = not part of this quote) */
+  compulsory?: number;
+  /** Comprehensive deductible at a non-network garage */
+  deductible?: number;
+  /** Comprehensive deductible at a network garage */
+  deductibleNetwork?: number;
+  thirdPartyDeductible?: number;
+  thirdPartyLimit?: number;
+  towing?: boolean;
+  glass?: boolean;
+  replacementCar?: boolean;
+  /** The quoted price holds until */
+  validUntil?: string;
+  agent?: string;
+  url?: string;
+  notes?: string;
+  chosen?: boolean;
+}
+
+export type CollectionName = 'fuel' | 'maintenance' | 'tests' | 'documents' | 'tasks' | 'parts' | 'expenses' | 'equipment' | 'quotes';

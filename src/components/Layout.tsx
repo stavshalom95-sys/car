@@ -1,5 +1,5 @@
 import { NavLink, Outlet, Link } from 'react-router-dom';
-import { CalendarCheck, Car, CircleDot, FileText, Fuel, LayoutGrid, Moon, Package, Receipt, Settings as SettingsIcon, Sun, SunMoon, Wrench } from 'lucide-react';
+import { CalendarCheck, Car, CircleDot, FileText, Fuel, LayoutGrid, Moon, Package, Receipt, Settings as SettingsIcon, ShieldCheck, Sun, SunMoon, Wrench } from 'lucide-react';
 import { useTheme, type ThemePref } from '../lib/hooks';
 import { useData } from '../lib/data';
 import { useAuth } from '../lib/auth';
@@ -14,6 +14,7 @@ const NAV = [
   { to: '/documents', label: 'מסמכים', icon: FileText },
   { to: '/expenses', label: 'הוצאות', icon: Receipt },
   { to: '/equipment', label: 'ציוד', icon: Package },
+  { to: '/insurance', label: 'ביטוח', icon: ShieldCheck },
 ];
 
 /** Mobile bottom bar: 4 main sections + "more" */

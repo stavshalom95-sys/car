@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type {
-  CarDocument, ChecklistItem, CollectionName, EquipmentItem, Expense, FuelEntry, MaintenanceEntry, PartInfo, Settings, Task, TestEntry,
+  CarDocument, ChecklistItem, CollectionName, EquipmentItem, Expense, FuelEntry, InsuranceQuote, MaintenanceEntry, PartInfo, Settings, Task, TestEntry,
 } from './types';
 import { FirestoreBackend, LocalBackend, type Backend } from './backend';
 import { firestore } from './firebase';
@@ -44,6 +44,7 @@ interface DataState {
   parts: PartInfo[];
   expenses: Expense[];
   equipment: EquipmentItem[];
+  quotes: InsuranceQuote[];
   add: (col: CollectionName, data: object) => Promise<string>;
   update: (col: CollectionName, id: string, data: object) => Promise<void>;
   /** Callers MUST ask the user for confirmation before calling this. */
@@ -72,6 +73,7 @@ export function DataProvider({ user, children }: { user: AppUser; children: Reac
   const [parts, setParts] = useState<PartInfo[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [equipment, setEquipment] = useState<EquipmentItem[]>([]);
+  const [quotes, setQuotes] = useState<InsuranceQuote[]>([]);
   const [loaded, setLoaded] = useState<Set<string>>(new Set());
   const [lastError, setLastError] = useState<string | null>(null);
 
@@ -88,6 +90,7 @@ export function DataProvider({ user, children }: { user: AppUser; children: Reac
       backend.subscribe<CarDocument>('documents', (x) => { setDocuments(x); mark('documents'); }, onErr),
       backend.subscribe<Task>('tasks', (x) => { setTasks(x.sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0))); mark('tasks'); }, onErr),
       backend.subscribe<EquipmentItem>('equipment', (x) => { setEquipment(x.sort((a, b) => a.name.localeCompare(b.name, 'he'))); mark('equipment'); }, onErr),
+      backend.subscribe<InsuranceQuote>('quotes', (x) => { setQuotes(byDateDesc(x)); mark('quotes'); }, onErr),
       backend.subscribe<Expense>('expenses', (x) => { setExpenses(byDateDesc(x)); mark('expenses'); }, onErr),
       backend.subscribe<PartInfo>('parts', (x) => { setParts(x); mark('parts'); }, onErr),
       backend.subscribeDoc<Partial<Settings>>('settings', (s) => {
@@ -102,10 +105,10 @@ export function DataProvider({ user, children }: { user: AppUser; children: Reac
   }, [backend]);
 
   const value: DataState = {
-    ready: loaded.size >= 9 && !!settings,
+    ready: loaded.size >= 10 && !!settings,
     backend,
     settings: settings ?? DEFAULT_SETTINGS,
-    fuel, maintenance, tests, documents, tasks, parts, expenses, equipment,
+    fuel, maintenance, tests, documents, tasks, parts, expenses, equipment, quotes,
     add: (c, d) => backend.add(c, d),
     update: (c, id, d) => backend.update(c, id, d),
     remove: (c, id) => backend.remove(c, id),
